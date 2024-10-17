@@ -22,21 +22,19 @@ type WorkerPool struct {
 	db          *database.Database
 }
 
-func NewWorkerPool(workerCount int, dbFilename string) (*WorkerPool, error) {
+func NewWorkerPool(workerCount int, db *database.Database,
+	autoStart bool) (*WorkerPool, error) {
+
 	wp := &WorkerPool{
 		workerCount: workerCount,
 		jobQueue:    make(chan Job, 1),
 		isRunning:   true,
 		log:         slog.New(slog.NewJSONHandler(os.Stdout, nil)),
-		db:          database.NewDb(dbFilename),
+		db:          db,
 	}
 
-	if err := wp.db.Open(); err != nil {
-		return nil, err
-	}
-
-	if err := wp.db.CreateTables(); err != nil {
-		return nil, err
+	if autoStart {
+		wp.Start()
 	}
 
 	return wp, nil
@@ -64,20 +62,28 @@ func (wp *WorkerPool) Shutdown() {
 	wp.log.Info("shutting down worker pool", "workerCount", wp.workerCount)
 	wp.isRunning = false
 	wp.db.Close()
+
+	// wait until all workers are shutdown
+	wp.Wait()
 }
 
 func (wp *WorkerPool) Enqueue(job Job) {
-	wp.log.Info("enqueuing job")
+	// some sophisticated logging, depending on type of job interface
+	switch v := job.(type) {
+	case *database.Job:
+		wp.log.Info("enqueuing web job", "webJob", job.(*database.Job))
+	default:
+		wp.log.Warn("enqueuing unknown job type", "jobType", v)
+	}
+
 	wp.jobQueue <- job
 }
 
 func (wp *WorkerPool) worker(workerId int, ch chan bool) {
 	defer wp.wg.Done()
 
-	wp.log.Info("starting worker", "workerId", workerId)
+	wp.log.Debug("starting worker", "workerId", workerId)
 
-	maxWait := 3
-out:
 	for {
 		if !wp.isRunning {
 			// not running => simply stop worker
@@ -92,23 +98,13 @@ out:
 			job.Execute(wp.db)
 			wp.log.Info("job completed", "workerId", workerId)
 
-			// reset wait mechanism
-			maxWait = 3
-
 		default:
-			// wait for
+			// wait for 1s, if there are no jobs
 			time.Sleep(time.Duration(1 * time.Second))
-			if maxWait == 0 {
-				wp.log.Info("no job in queue")
-				break out
-			} else {
-				maxWait--
-				wp.log.Debug("waiting", "maxWait", maxWait)
-			}
 		}
 	}
 
 	ch <- true
 
-	wp.log.Info("stopping worker", "workerId", workerId)
+	wp.log.Debug("stopping worker", "workerId", workerId)
 }
