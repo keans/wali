@@ -3,6 +3,7 @@ package database
 import (
 	"crypto/sha256"
 	"fmt"
+	"log/slog"
 	"time"
 	"wali/internal/utils"
 	"wali/internal/yaml"
@@ -64,15 +65,14 @@ func (j *Job) IsExceeded() bool {
 		(j.LastExecuted).(time.Time).Add(
 			time.Duration(j.Frequency)*time.Millisecond)) == 1
 }
-
-func (j *Job) Execute(db *Database) bool {
-	fmt.Printf("Loading URL: %v\n", j.Url)
+func (j *Job) Execute(db *Database, smtp *utils.Smtp, log *slog.Logger) bool {
+	log.Info("loading URL", "url", j.Url)
 
 	// set status to running
 	j.Status = Running
 	db.UpdateJob(j)
 
-	body, err := utils.Get(j.Url)
+	body, err := utils.Get(j.Url, j.Xpath)
 	if err != nil {
 		panic(err)
 	}
@@ -81,7 +81,23 @@ func (j *Job) Execute(db *Database) bool {
 	h := sha256.New()
 	h.Write(body)
 	hexdigest := fmt.Sprintf("%x", h.Sum(nil))
-	fmt.Println(hexdigest)
+
+	if j.PageHash != hexdigest {
+		// there was a change
+		log.Info("change of page detected", "key", j.Key, "url", j.Url,
+			"digest", hexdigest)
+
+		j.PageHash = hexdigest
+
+		// prepare message and send it
+		subject := fmt.Sprintf("[Wali]: Change of %s detected", j.Key)
+		msg := fmt.Sprintf("A change of %s has been detected on %s:\n\n%s",
+			j.Key, time.Now().String(), string(body))
+
+		log.Info("sending mail", "subject", subject)
+
+		smtp.SendMail(subject, msg)
+	}
 
 	// set status to stopped
 	j.Status = Stopped
@@ -89,7 +105,7 @@ func (j *Job) Execute(db *Database) bool {
 	j.PageHash = hexdigest
 	db.UpdateJob(j)
 
-	fmt.Printf("DONE Loading URL: %v\n", j.Url)
+	log.Info("loading URL completed", "url", j.Url)
 
 	return true
 }

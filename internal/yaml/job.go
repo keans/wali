@@ -12,10 +12,6 @@ type Job struct {
 	FrequencyMs  int64
 }
 
-type Jobs struct {
-	WebJobs map[string]Job `yaml:"webjobs"`
-}
-
 func (wj *Job) IsValid() bool {
 	if wj.Key == "" {
 		slog.Error("key cannot be empty", "key", wj.Key)

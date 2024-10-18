@@ -12,7 +12,14 @@ var (
 	ErrMissingWebjobsInYaml = errors.New("missing webjobs in YAML file")
 )
 
-func ReadYaml(filename string, wj *Jobs) error {
+// structure of the YAML file
+type WaliYaml struct {
+	Smtp    Smtp           `yaml:"smtp"`
+	WebJobs map[string]Job `yaml:"webjobs"`
+}
+
+// read the YAML file of the WaliYaml format
+func ReadYaml(filename string, wj *WaliYaml) error {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err

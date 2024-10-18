@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,10 +16,16 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+var (
+	tickCount int
+)
+
 type Context struct {
 	Config     utils.AppConfig
 	db         *database.Database
+	smtp       *utils.Smtp
 	workerPool *models.WorkerPool
+	log        *slog.Logger
 }
 
 type CLI struct {
@@ -31,8 +37,15 @@ type RunCmd struct {
 }
 
 func (c *Context) OnTick(t time.Time) {
-	fmt.Println("Tick at", t)
+	if tickCount == c.Config.ShowTickEvery {
+		// show tick that application is still alive and reset counter
+		c.log.Info("tick", "at", t)
+		tickCount = 0
+	} else {
+		tickCount++
+	}
 
+	// get all jobs from database
 	jobs, err := c.db.GetAllJobs()
 	if err != nil {
 		panic(err)
@@ -41,7 +54,7 @@ func (c *Context) OnTick(t time.Time) {
 	for _, j := range jobs {
 		if j.IsExceeded() {
 			// job exceeded => enqueue
-			fmt.Println("exceed", j)
+			c.log.Info("job exceeded", "job", j.Key)
 
 			// add to queue
 			c.workerPool.Enqueue(j)
@@ -66,10 +79,18 @@ func (c *RunCmd) Run(ctx *Context) error {
 	}
 
 	// read jobs from YAML file
-	var webjobs yaml.Jobs
-	if err := yaml.ReadYaml(c.YamlFile, &webjobs); err != nil {
+	var waliYaml yaml.WaliYaml
+	if err := yaml.ReadYaml(c.YamlFile, &waliYaml); err != nil {
 		return err
 	}
+
+	// prepare smtp server
+	ctx.smtp = utils.NewSmtp(waliYaml.Smtp.Host, waliYaml.Smtp.Port,
+		waliYaml.Smtp.Username, waliYaml.Smtp.Password,
+		waliYaml.Smtp.From, waliYaml.Smtp.To)
+
+	// prepare logger
+	ctx.log = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	// initialize the database and reset jobs statuses
 	ctx.db = database.NewDb(ctx.Config.DbFilename)
@@ -82,7 +103,7 @@ func (c *RunCmd) Run(ctx *Context) error {
 	}
 
 	// add all webjobs from YAML to the database (or update if existing)
-	ctx.db.AddFromYaml(&webjobs)
+	ctx.db.AddFromYaml(&waliYaml)
 
 	// ensure that all jobs are marked as 'stopped' on startup to avoid
 	// problems of ungracefully shutdown artefacts
@@ -91,7 +112,7 @@ func (c *RunCmd) Run(ctx *Context) error {
 	// prepare worker pool
 	var err error
 	ctx.workerPool, err = models.NewWorkerPool(ctx.Config.WorkersCount,
-		ctx.db, true)
+		ctx.db, ctx.log, ctx.smtp, true)
 	if err != nil {
 		return err
 	}
@@ -109,16 +130,6 @@ func (c *RunCmd) Run(ctx *Context) error {
 
 	// stop the scheduler
 	sched.Stop()
-
-	// // add all jobs obtained from YAML
-	// for _, job := range webjobs.WebJobs {
-	// 	fmt.Println(job)
-	// 	if job.IsValid() {
-	// 		wp.Enqueue(&job)
-	// 	} else {
-	// 		slog.Error("skipping", "webJob", job)
-	// 	}
-	// }
 
 	return nil
 }

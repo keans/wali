@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -194,14 +193,14 @@ func (db *Database) GetAllJobs() ([]*Job, error) {
 	return jobs, nil
 }
 
-func (db *Database) AddFromYaml(jobs *yaml.Jobs) {
+func (db *Database) AddFromYaml(jobs *yaml.WaliYaml) {
 	for _, j := range jobs.WebJobs {
 		// get job from database
 		job, err := db.GetJobByKey(j.Key)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("AAAA", job)
+
 		if job == nil {
 			// job not yet in database => add it
 			if err := db.InsertJob(NewJobFromWebJob(&j)); err != nil {

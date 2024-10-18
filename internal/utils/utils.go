@@ -1,13 +1,14 @@
 package utils
 
 import (
+	"bytes"
 	"errors"
-	"io"
-	"log"
-	"net/http"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/antchfx/htmlquery"
+	"golang.org/x/net/html"
 )
 
 var (
@@ -59,21 +60,22 @@ func ParseFrequency(freq string) (int64, error) {
 	return duration.Milliseconds(), nil
 }
 
-func Get(url string) ([]byte, error) {
-	res, err := http.Get(url)
+func Get(url string, xpath string) ([]byte, error) {
+	doc, err := htmlquery.LoadURL(url)
 	if err != nil {
 		return nil, err
 	}
 
-	if res.StatusCode != http.StatusOK {
-		panic(res.Body)
+	if xpath != "" {
+		// if provided, filter by xpath
+		doc = htmlquery.FindOne(doc, xpath)
 	}
 
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
+	// render the HTML node
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		return nil, err
 	}
 
-	return body, nil
+	return buf.Bytes(), nil
 }

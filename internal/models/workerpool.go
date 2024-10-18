@@ -1,16 +1,16 @@
 package models
 
 import (
-	"os"
 	"sync"
 	"time"
 	"wali/internal/database"
+	"wali/internal/utils"
 
 	"log/slog"
 )
 
 type Job interface {
-	Execute(db *database.Database) bool
+	Execute(db *database.Database, smtp *utils.Smtp, log *slog.Logger) bool
 }
 
 type WorkerPool struct {
@@ -20,17 +20,19 @@ type WorkerPool struct {
 	isRunning   bool
 	log         *slog.Logger
 	db          *database.Database
+	smtp        *utils.Smtp
 }
 
-func NewWorkerPool(workerCount int, db *database.Database,
-	autoStart bool) (*WorkerPool, error) {
+func NewWorkerPool(workerCount int, db *database.Database, log *slog.Logger,
+	smtp *utils.Smtp, autoStart bool) (*WorkerPool, error) {
 
 	wp := &WorkerPool{
 		workerCount: workerCount,
 		jobQueue:    make(chan Job, 1),
 		isRunning:   true,
-		log:         slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+		log:         log,
 		db:          db,
+		smtp:        smtp,
 	}
 
 	if autoStart {
@@ -95,7 +97,7 @@ func (wp *WorkerPool) worker(workerId int, ch chan bool) {
 		case job := <-wp.jobQueue:
 			// get job from queue and execute it
 			wp.log.Info("executing job", "workerId", workerId)
-			job.Execute(wp.db)
+			job.Execute(wp.db, wp.smtp, wp.log)
 			wp.log.Info("job completed", "workerId", workerId)
 
 		default:
