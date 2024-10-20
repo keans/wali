@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
-	"wali/internal/utils"
-	"wali/internal/yaml"
+
+	"github.com/keans/wali/internal/utils"
+	"github.com/keans/wali/internal/yaml"
 )
 
 const (
@@ -74,7 +75,8 @@ func (j *Job) Execute(db *Database, smtp *utils.Smtp, log *slog.Logger) bool {
 
 	body, err := utils.Get(j.Url, j.Xpath)
 	if err != nil {
-		panic(err)
+		log.Error("Could not get URL", "url", j.Url, "err", err)
+		return false
 	}
 
 	// compute hash of body

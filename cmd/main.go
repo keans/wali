@@ -7,10 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"wali/internal/database"
-	"wali/internal/models"
-	"wali/internal/utils"
-	"wali/internal/yaml"
+
+	"github.com/keans/wali/internal/database"
+	"github.com/keans/wali/internal/models"
+	"github.com/keans/wali/internal/utils"
+	"github.com/keans/wali/internal/yaml"
 
 	"github.com/alecthomas/kong"
 	"github.com/ilyakaznacheev/cleanenv"

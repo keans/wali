@@ -5,7 +5,8 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"wali/internal/yaml"
+
+	"github.com/keans/wali/internal/yaml"
 
 	_ "github.com/mattn/go-sqlite3"
 )

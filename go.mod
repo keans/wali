@@ -1,6 +1,6 @@
-module wali
+module github.com/keans/wali
 
-go 1.23.1
+go 1.23
 
 require (
 	github.com/alecthomas/kong v1.2.1

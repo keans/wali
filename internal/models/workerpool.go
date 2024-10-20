@@ -3,8 +3,9 @@ package models
 import (
 	"sync"
 	"time"
-	"wali/internal/database"
-	"wali/internal/utils"
+
+	"github.com/keans/wali/internal/database"
+	"github.com/keans/wali/internal/utils"
 
 	"log/slog"
 )

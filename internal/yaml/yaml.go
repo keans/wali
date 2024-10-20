@@ -3,7 +3,8 @@ package yaml
 import (
 	"errors"
 	"os"
-	"wali/internal/utils"
+
+	"github.com/keans/wali/internal/utils"
 
 	"gopkg.in/yaml.v3"
 )
@@ -20,17 +21,19 @@ type WaliYaml struct {
 
 // read the YAML file of the WaliYaml format
 func ReadYaml(filename string, wj *WaliYaml) error {
+	// read the YAML file
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
 
+	// unmarshall it
 	if err := yaml.Unmarshal(data, wj); err != nil {
 		return err
 	}
 
 	if len(wj.WebJobs) == 0 {
-		// no webjobs found
+		// no webjobs found => return error
 		return ErrMissingWebjobsInYaml
 
 	} else {
