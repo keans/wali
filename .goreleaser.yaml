@@ -1,0 +1,128 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+release:
+    disable: true
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: darwin-amd64
+    binary: wali
+    main: ./cmd/main.go
+    goarch:
+      - amd64
+    goos:
+      - darwin
+    env:
+      - CC=o64-clang
+      - CXX=o64-clang++
+    flags:
+      - -trimpath
+  - id: darwin-arm64
+    binary: wali
+    main: ./cmd/main.go
+    goarch:
+      - arm64
+    goos:
+      - darwin
+    env:
+      - CC=oa64-clang
+      - CXX=oa64-clang++
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+  - id: linux-amd64
+    binary: wali
+    main: ./cmd/main.go
+    env:
+      - CC=x86_64-linux-gnu-gcc
+      - CXX=x86_64-linux-gnu-g++
+      - CGO_ENABLED=1
+    goarch:
+      - amd64
+    goos:
+      - linux
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-lc -lrt -lpthread --static"
+  - id: linux-arm64
+    binary: wali
+    main: ./cmd/main.go
+    goarch:
+      - arm64
+    goos:
+      - linux
+    env:
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-lc -lrt -lpthread --static"
+  - id: windows-amd64
+    binary: wali
+    main: ./cmd/main.go
+    goarch:
+      - amd64
+    goos:
+      - windows
+    env:
+      - CC=x86_64-w64-mingw32-gcc
+      - CXX=x86_64-w64-mingw32-g++
+      - CGO_ENABLED=1
+    flags:
+      - -trimpath
+      - -buildmode=exe
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - id: deb
+    package_name: wali
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}.deb"
+    bindir: /usr/bin
+    maintainer: "Ansgar Kellner <keans@gmx.de>"
+    description: |-
+      "Web Alert Indicator."
+    license: "MIT"
+    homepage: "https://github.com/keans/wali"
+    formats:
+      - deb
+    dependencies:
+      - libc6
+    contents:
+      - src: configs/wali.service
+        dst: /etc/systemd/system/wali.service
+        file_info:
+          mode: 0640
+          owner: root
+          group: wali
+      - src: configs/wali.yaml
+        dst: /etc/wali.yaml
+        type: "config|noreplace"
+        file_info:
+          mode: 0640
+          owner: root
+          group: wali
+
+    scripts:
+      preinstall: scripts/preinstall.sh
+      postinstall: scripts/postinstall.sh
+      postremove: "scripts/postremove.sh"

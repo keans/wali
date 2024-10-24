@@ -34,7 +34,7 @@ type CLI struct {
 }
 
 type RunCmd struct {
-	YamlFile string `arg:"" name:"yamlfile" help:"YAML file that is read." type:"path" default:"wali.yaml"`
+	YamlFile string `arg:"" name:"yamlfile" help:"YAML file that is read." type:"path"`
 }
 
 func (c *Context) OnTick(t time.Time) {
