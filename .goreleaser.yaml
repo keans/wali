@@ -1,0 +1,54 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./cmd/main.go
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - package_name: wali
+    maintainer: "Ansgar Kellner <keans@gmx.de>"
+    description: |-
+      "Web Alert Indicator."
+    license: "MIT"
+    homepage: "https://github.com/keans/wali"
+    formats:
+      - deb
+    contents:
+      - src: configs/wali.service
+        dst: /etc/systemd/system/wali.service
+        file_info:
+          mode: 0640
+          owner: root
+          group: wali
+      - src: configs/wali.yaml
+        dst: /etc/wali.yaml
+        file_info:
+          mode: 0640
+          owner: root
+          group: wali
+    scripts:
+      preinstall: scripts/preinstall.sh
+      postinstall: scripts/postinstall.sh

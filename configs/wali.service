@@ -1,0 +1,15 @@
+[Unit]
+Description=Web Alert Indicator Service
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+Environment=WALI_DB=/var/lib/wali.db
+ExecStart=/usr/bin/wali run /etc/wali.yaml
+User=wali
+Group=wali
+
+[Install]
+WantedBy=multi-user.target

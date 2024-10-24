@@ -8,6 +8,53 @@ DISCLAIMER: This tool is at an early development stage and not fully tested
             yet, please do not use it in production.
 
 
+Build
+-----
+
+MacOS
+~~~~~~
+
+Ensure that goreleaser and nfpm are installed:
+
+::
+    brew install goreleaser nfpm dpkg
+
+
+Build current snapshot (without release tags) locally, including deb:
+
+::
+    goreleaser release --snapshot --clean
+
+
+Install
+-------
+
+Debian
+~~~~~~
+
+Install the package
+::
+    sudo dpkg -i wali_<version>_linux_386.deb
+
+Adapt the config to your needs `/etc/vali.yaml`.
+
+
+Start background systemd service:
+
+::
+    # reload systemd services
+    sudo systemctl daemon-reload
+
+    # start the service
+    sudo systemctl start wali
+
+    # check if running
+    sudo systemctl status wali
+
+    # emable the service on each start-up
+    sudo systemctl enable wali
+
+
 Usage
 -----
 

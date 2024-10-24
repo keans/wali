@@ -1,0 +1,12 @@
+smtp:
+  host: smtp.host.net
+  port: 587
+  username: yourusername
+  password: yourpassword
+  from: from@host.net
+  to: to@example.com
+webjobs:
+  google.com:
+    url: https://google.com
+    xpath: /html/body
+    frequency: 1d

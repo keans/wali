@@ -4,3 +4,4 @@
 *.yaml
 *.db
 .vscode/
+dist/
