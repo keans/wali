@@ -95,7 +95,9 @@ func (c *RunCmd) Run(ctx *Context) error {
 
 	// initialize the database and reset jobs statuses
 	ctx.db = database.NewDb(ctx.Config.DbFilename)
-	ctx.db.Open()
+	if err := ctx.db.Open(); err != nil {
+		return err
+	}
 	defer ctx.db.Close()
 
 	// ensure that database files are available

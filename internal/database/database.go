@@ -50,6 +50,10 @@ func NewDb(filename string) *Database {
 func (db *Database) Open() error {
 	db.log.Debug("opening database", "filename", db.Filename)
 
+	if _, err := os.Stat(db.Filename); err != nil {
+		return err
+	}
+
 	var err error
 	db.db, err = sql.Open("sqlite3", db.Filename)
 
