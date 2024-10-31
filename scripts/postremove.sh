@@ -1,4 +1,10 @@
 #!/usr/bin/bash
+set -e
 
-# remove user
-deluser wali
+if [ $1 != "upgrade" ]; then
+    # stop service before deleting the user
+    systemctl stop wali
+
+    # remove user, if not an upgrade
+    deluser wali
+fi

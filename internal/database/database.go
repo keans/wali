@@ -31,6 +31,7 @@ const (
 	updateJobSql string = `UPDATE jobs SET url=?, xpath=?,
 		frequency=?, page_hash=?, created=?, last_executed=?,
 		last_change=?, status=? WHERE key=?;`
+	deleteJobSql               string = `DELETE FROM jobs WHERE key=?;`
 	updateJobStatusesToStopSql string = `UPDATE jobs SET status=0;`
 )
 
@@ -40,6 +41,7 @@ type Database struct {
 	log      *slog.Logger
 }
 
+// create new database instance of given filename
 func NewDb(filename string) *Database {
 	return &Database{
 		Filename: filename,
@@ -47,12 +49,9 @@ func NewDb(filename string) *Database {
 	}
 }
 
+// open the database
 func (db *Database) Open() error {
 	db.log.Debug("opening database", "filename", db.Filename)
-
-	if _, err := os.Stat(db.Filename); err != nil {
-		return err
-	}
 
 	var err error
 	db.db, err = sql.Open("sqlite3", db.Filename)
@@ -60,6 +59,7 @@ func (db *Database) Open() error {
 	return err
 }
 
+// close the database
 func (db *Database) Close() error {
 	db.log.Debug("closing database", "filename", db.Filename)
 
@@ -74,6 +74,7 @@ func (db *Database) CreateTables() error {
 	return err
 }
 
+// insert a job into the database
 func (db *Database) InsertJob(wj *Job) error {
 	tx, err := db.db.Begin()
 	if err != nil {
@@ -99,6 +100,7 @@ func (db *Database) InsertJob(wj *Job) error {
 	return nil
 }
 
+// update an existing job in the database
 func (db *Database) UpdateJob(wj *Job) error {
 	tx, err := db.db.Begin()
 	if err != nil {
@@ -124,6 +126,14 @@ func (db *Database) UpdateJob(wj *Job) error {
 	return nil
 }
 
+// delete a job from the database by given key
+func (db *Database) DeleteJob(key string) error {
+	_, err := db.db.Exec(deleteJobSql, key)
+
+	return err
+}
+
+// resets all job statuses to Stopped (=0)
 func (db *Database) ResetJobsStatuses() error {
 	tx, err := db.db.Begin()
 	if err != nil {
@@ -148,6 +158,7 @@ func (db *Database) ResetJobsStatuses() error {
 	return nil
 }
 
+// returns job from database by given key
 func (db *Database) GetJobByKey(key string) (*Job, error) {
 	stmt, err := db.db.Prepare(queryJobByKeySql)
 	if err != nil {
@@ -170,6 +181,7 @@ func (db *Database) GetJobByKey(key string) (*Job, error) {
 	return &j, nil
 }
 
+// get a list of all jobs
 func (db *Database) GetAllJobs() ([]*Job, error) {
 	stmt, err := db.db.Prepare(queryJobs)
 	if err != nil {
@@ -198,6 +210,8 @@ func (db *Database) GetAllJobs() ([]*Job, error) {
 	return jobs, nil
 }
 
+// adds all jobs from the YAML file to the dabase
+// (existing ones will be updated)
 func (db *Database) AddFromYaml(jobs *yaml.WaliYaml) {
 	for _, j := range jobs.WebJobs {
 		// get job from database
@@ -208,6 +222,7 @@ func (db *Database) AddFromYaml(jobs *yaml.WaliYaml) {
 
 		if job == nil {
 			// job not yet in database => add it
+			db.log.Debug("inserting job", "job", j)
 			if err := db.InsertJob(NewJobFromWebJob(&j)); err != nil {
 				panic(err)
 			}
@@ -217,7 +232,38 @@ func (db *Database) AddFromYaml(jobs *yaml.WaliYaml) {
 			job.Url = j.Url
 			job.Xpath = j.Xpath
 			job.Frequency = j.FrequencyMs
+
+			db.log.Debug("updating job", "job", job)
 			if err := db.UpdateJob(job); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+// removes all jobs that in the database, but not in the YAML anymore
+func (db *Database) ClearJobsNotInYaml(jobs *yaml.WaliYaml) {
+	// get all jobs from database
+	dbJobs, err := db.GetAllJobs()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, dbJob := range dbJobs {
+		// find db job key in YAML jobs
+		isInYaml := false
+		for _, j := range jobs.WebJobs {
+			if dbJob.Key == j.Key {
+				// database key is matching the key from YAML
+				isInYaml = true
+				break
+			}
+		}
+
+		if !isInYaml {
+			// db key is not in YAML => remove from db
+			db.log.Debug("deleting job from database", "jobKey", dbJob.Key)
+			if err := db.DeleteJob(dbJob.Key); err != nil {
 				panic(err)
 			}
 		}

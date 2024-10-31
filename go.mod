@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/kong v1.2.1
 	github.com/antchfx/htmlquery v1.3.3
 	github.com/ilyakaznacheev/cleanenv v1.5.0
+	github.com/k3a/html2text v1.2.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	golang.org/x/net v0.7.0
 	gopkg.in/mail.v2 v2.3.1

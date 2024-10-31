@@ -108,6 +108,9 @@ func (c *RunCmd) Run(ctx *Context) error {
 	// add all webjobs from YAML to the database (or update if existing)
 	ctx.db.AddFromYaml(&waliYaml)
 
+	// remove old jobs that are still in database, but not in YAML anymore
+	ctx.db.ClearJobsNotInYaml(&waliYaml)
+
 	// ensure that all jobs are marked as 'stopped' on startup to avoid
 	// problems of ungracefully shutdown artefacts
 	ctx.db.ResetJobsStatuses()

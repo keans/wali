@@ -123,6 +123,6 @@ nfpms:
           group: wali
 
     scripts:
-      preinstall: scripts/preinstall.sh
-      postinstall: scripts/postinstall.sh
-      postremove: "scripts/postremove.sh"
+      preinstall: ./scripts/preinstall.sh
+      postinstall: ./scripts/postinstall.sh
+      postremove: ./scripts/postremove.sh

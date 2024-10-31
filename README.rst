@@ -85,7 +85,7 @@ Start `wali` to watch the pages defined in the YAML file:
 
 ::
 
-    go run cmd/main.go run
+    go run cmd/main.go run wali.yaml
 
 or if installed, just
 

@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Restart=always
 RestartSec=5
-Environment=WALI_DB=/var/lib/wali.db
+Environment=WALI_DB=/var/lib/wali/wali.db
 ExecStart=/usr/bin/wali run /etc/wali.yaml
 User=wali
 Group=wali
