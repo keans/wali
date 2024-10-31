@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/k3a/html2text"
+
 	"github.com/keans/wali/internal/utils"
 	"github.com/keans/wali/internal/yaml"
 )
@@ -91,10 +93,13 @@ func (j *Job) Execute(db *Database, smtp *utils.Smtp, log *slog.Logger) bool {
 
 		j.PageHash = hexdigest
 
+		// convert HTML to text for mail
+		plain := html2text.HTML2Text(string(body))
+
 		// prepare message and send it
-		subject := fmt.Sprintf("[Wali]: Change of %s detected", j.Key)
+		subject := fmt.Sprintf("[Wali] Change of %s detected", j.Key)
 		msg := fmt.Sprintf("A change of %s has been detected on %s:\n\n%s",
-			j.Key, time.Now().String(), string(body))
+			j.Url, time.Now().Format(time.ANSIC), plain)
 
 		log.Info("sending mail", "subject", subject)
 

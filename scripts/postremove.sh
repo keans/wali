@@ -1,4 +1,7 @@
 #!/usr/bin/bash
+set -e
 
-# remove user
-deluser wali
+if [ $1 != "upgrade" ]; then
+    # remove user, if not an upgrade
+    deluser wali
+fi
